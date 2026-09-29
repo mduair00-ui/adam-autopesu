@@ -27,7 +27,7 @@ section{padding:54px 0}.head{text-align:center;margin-bottom:24px}.head small{co
 </div></div></div>
 <div class="step"><div class="num">2</div><div><h3>Valitse ajoneuvon tyyppi</h3><div class="two"><button class="choice vehicle active" data-type="n">🚘 Henkilöauto</button><button class="choice vehicle" data-type="s">🚙 SUV / iso auto</button></div></div></div>
 <div class="step"><div class="num">3</div><div><h3>Valitse päivä ja aika</h3><div class="two"><div class="field"><label>PÄIVÄ</label><input id="date" type="date"></div><div class="field"><label>AIKA</label><select id="time"><option value="">Valitse ensin päivä</option></select></div></div></div></div>
-<div class="step"><div class="num">4</div><div><h3>Yhteystiedot</h3><div class="two"><div class="field"><label>NIMI *</label><input id="name" placeholder="Nimi"></div><div class="field"><label>PUHELINNUMERO *</label><input id="phone" inputmode="tel" placeholder="Puhelinnumero"></div><div class="field"><label>REKISTERINUMERO *</label><input id="plate" maxlength="10" placeholder="Esim. ABC-123"></div><div class="field"><label>LISÄTIETOJA</label><input placeholder="Valinnainen"></div></div></div></div>
+<div class="step"><div class="num">4</div><div><h3>Yhteystiedot</h3><div class="two"><div class="field"><label>NIMI *</label><input id="name" placeholder="Nimi"></div><div class="field"><label>PUHELINNUMERO *</label><input id="phone" inputmode="tel" placeholder="Puhelinnumero"></div><div class="field"><label>REKISTERINUMERO *</label><input id="plate" maxlength="10" placeholder="Esim. ABC-123"></div><div class="field"><label>LISÄTIETOJA</label><input id="notes" placeholder="Valinnainen"></div></div></div></div>
 <div class="step"><div class="num">5</div><div><h3>Nouto- ja palautuspalvelu</h3><div class="pickup"><label><input id="pickup" type="checkbox"><span>Haluan nouto- ja palautuspalvelun.</span></label><div class="address" id="addressBox"><input id="address" placeholder="Nouto-osoite"></div></div></div></div>
 <div class="summary"><div><small>Valittu palvelu</small><strong id="sumName">Peruspesu</strong></div><div class="sumprice"><small>Hinta</small><strong id="sumPrice">20 €</strong></div></div><button class="confirm" id="confirm">VAHVISTA VARAUS →</button><div class="success" id="success">✓ Varaus vastaanotettu. Kiitos!</div>
 </div></section>
@@ -36,10 +36,73 @@ section{padding:54px 0}.head{text-align:center;margin-bottom:24px}.head small{co
 <footer><b>ADAM AUTOPESU</b><span>Puhdas auto. Parempi fiilis.</span><span>046 882 2508</span></footer></div>
 <script>
 document.querySelectorAll('.detail').forEach(b=>b.onclick=()=>{let d=b.nextElementSibling;d.classList.toggle('open');b.textContent=d.classList.contains('open')?'Sulje tiedot ↑':'Mitä palveluun kuuluu? ↓'});
-let svc=document.querySelector('.service.active'),type='n';function sum(){sumName.textContent=svc.dataset.name;let p=svc.dataset[type];sumPrice.textContent=p?p+' €':'Sopimuksen mukaan'}
+let svc=document.querySelector('.service.active'),type='n';
+function sum(){sumName.textContent=svc.dataset.name;let p=svc.dataset[type];sumPrice.textContent=p?p+' €':'Sopimuksen mukaan'}
 document.querySelectorAll('.service').forEach(b=>b.onclick=()=>{document.querySelectorAll('.service').forEach(x=>x.classList.remove('active'));b.classList.add('active');svc=b;sum()});
 document.querySelectorAll('.vehicle').forEach(b=>b.onclick=()=>{document.querySelectorAll('.vehicle').forEach(x=>x.classList.remove('active'));b.classList.add('active');type=b.dataset.type;sum()});
-let d=document.getElementById('date'),t=document.getElementById('time');d.min=new Date().toISOString().split('T')[0];d.onchange=()=>{let day=new Date(d.value+'T12:00:00').getDay();t.innerHTML='';if(day===1){t.innerHTML='<option value="">Maanantaisin suljettu</option>';return}let a=(day===0||day===6)?9:8,e=(day===0||day===6)?17:18;t.innerHTML='<option value="">Valitse aika</option>';for(let h=a;h<e;h++)for(let m of [0,30]){let v=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');t.insertAdjacentHTML('beforeend','<option>'+v+'</option>')}};
-plate.oninput=e=>e.target.value=e.target.value.toUpperCase();pickup.onchange=()=>addressBox.classList.toggle('show',pickup.checked);
-confirm.onclick=()=>{if(!d.value||!t.value||!name.value.trim()||!phone.value.trim()||!plate.value.trim()){alert('Täytä päivä, aika, nimi, puhelinnumero ja rekisterinumero.');return}if(pickup.checked&&!address.value.trim()){alert('Lisää nouto-osoite.');return}success.classList.add('show')};
+let d=document.getElementById('date'),t=document.getElementById('time');
+d.min=new Date().toISOString().split('T')[0];
+d.onchange=()=>{let day=new Date(d.value+'T12:00:00').getDay();t.innerHTML='';if(day===1){t.innerHTML='<option value="">Maanantaisin suljettu</option>';return}let a=(day===0||day===6)?9:8,e=(day===0||day===6)?17:18;t.innerHTML='<option value="">Valitse aika</option>';for(let h=a;h<e;h++)for(let m of [0,30]){let v=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');t.insertAdjacentHTML('beforeend','<option>'+v+'</option>')}};
+plate.oninput=e=>e.target.value=e.target.value.toUpperCase();
+pickup.onchange=()=>addressBox.classList.toggle('show',pickup.checked);
+
+const SUPABASE_URL = 'https://mktzhdjhjydgfmpskeyg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_KdRNnNb85dtWD5o0qE-faw_My_a30sz';
+
+function addMinutes(hhmm, minutes) {
+  const [h,m] = hhmm.split(':').map(Number);
+  const total = h*60+m+minutes;
+  return String(Math.floor(total/60)).padStart(2,'0') + ':' + String(total%60).padStart(2,'0') + ':00';
+}
+
+async function saveBooking(data) {
+  const response = await fetch(SUPABASE_URL + '/rest/v1/Booking', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
+}
+
+confirm.onclick=async()=>{
+  if(!d.value||!t.value||!name.value.trim()||!phone.value.trim()||!plate.value.trim()){
+    alert('Täytä päivä, aika, nimi, puhelinnumero ja rekisterinumero.');return;
+  }
+  if(pickup.checked&&!address.value.trim()){alert('Lisää nouto-osoite.');return;}
+  const rawPrice = svc.dataset[type];
+  if(!rawPrice){alert('Renkaanvaihdon hinta sovitaan erikseen. Ota yhteyttä ajan vahvistamiseksi.');return;}
+  confirm.disabled=true;
+  confirm.textContent='LÄHETETÄÄN...';
+  try {
+    await saveBooking({
+      customer_name:name.value.trim(),
+      phone:phone.value.trim(),
+      registration_number:plate.value.trim(),
+      service:svc.dataset.name,
+      vehicle_type:type==='s'?'SUV / iso auto':'Henkilöauto',
+      booking_date:d.value,
+      start_time:t.value.length===5?t.value+':00':t.value,
+      end_time:addMinutes(t.value,30),
+      price:Number(rawPrice),
+      pickup_return:pickup.checked,
+      pickup_fee:0,
+      notes:(document.getElementById('notes')?.value.trim()||'') + (pickup.checked ? ' | Nouto: '+address.value.trim() : ''),
+      status:'confirmed'
+    });
+    success.classList.add('show');
+    success.textContent='✓ Varaus vastaanotettu. Kiitos!';
+  } catch(err) {
+    console.error(err);
+    alert('Varausta ei voitu tallentaa. Tarkista aika tai yritä uudelleen.');
+  } finally {
+    confirm.disabled=false;
+    confirm.textContent='VAHVISTA VARAUS →';
+  }
+};
 </script></body></html>
