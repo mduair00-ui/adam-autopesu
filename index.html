@@ -99,7 +99,7 @@ confirm.onclick=async()=>{
     success.textContent='✓ Varaus vastaanotettu. Kiitos!';
   } catch(err) {
     console.error(err);
-    alert('Varausta ei voitu tallentaa. Tarkista aika tai yritä uudelleen.');
+alert('ERROR: ' + err.message);
   } finally {
     confirm.disabled=false;
     confirm.textContent='VAHVISTA VARAUS →';
